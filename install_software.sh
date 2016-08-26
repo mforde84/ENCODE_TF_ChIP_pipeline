@@ -9,5 +9,5 @@ sudo python setup_w_cython.py install
 cd bin
 chmod +x *
 sudo cp * /usr/bin
-R CMD INSTALL spp_1.10.X.tar.gz
+R CMD INSTALL spp_1.10.1.tar.gz
 exit 0
