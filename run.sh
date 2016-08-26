@@ -10,7 +10,7 @@ export csize=$3
 #alignments, and sam file generation
 for f in *.fastq; do
  bwa aln -I -B 0 -t $threads $genome $f > $f.sai;
- bwa samse $genome $f.sai $f.fastq > $f.sam;
+ bwa samse $genome $f.sai $f > $f.sam;
 done;
 
 #q30 filter
