@@ -32,10 +32,10 @@ find . -name "*input*.tagAlign.gz" | xargs -n 1 -P $threads -iFILES sh -c 'f=$(e
 find . -name "*rep*tagAlign.gz" | xargs -n 1 -P $threads -iFILES sh -c 'nline=$(( ($(zcat FILES | wc -l) + 1) / 2 )); zcat FILES | shuf | split -d -l $nline - ./FILES.0; gzip ./FILES.000; gzip ./FILES.001; mv ./FILES.000.gz ./FILES.pr1.gz; mv ./FILES.001.gz ./FILES.pr2.gz;';
 
 #spp peak calls
-find . -name "*rep*.tagAlign.gz" | xargs -n 1 -P $threads -iFILES sh -c 'inp=$(echo FILES | sed "s/rep./input\.rep0/"); Rscript run_spp.R -c=FILES -i=$inp -npeak=30000 -x=-500:85 -odir=./ -p=10 -savr -savp -rf -out=FILES.cc;';
+find . -name "*rep*gz" | xargs -n 1 -P $threads -iFILES sh -c 'inp=$(echo FILES | sed "s/rep./input\.rep0/"); Rscript run_spp.R -c=FILES -i=$inp -npeak=30000 -x=-500:85 -odir=./ -p=10 -savr -savp -rf -out=FILES.cc;';
 
 #macs2 peak calls
-find . -name "*rep*.tagAlign.gz" | xargs -n 1 -P $threads -iFILES sh -c 'rep=$(echo FILES | sed "s/\.tagAlign.*//g"); inp=$(echo FILES | sed "s/rep./input\.rep0/"); ss=$(cat FILES.cc | grep FILES | cut -f3 | head -n 1 | cut -d "," -f1); macs2 callpeak -t FILES -c $inp -g $gsize --to-large --nomodel --extsize $ss -p 0.1 -n "$rep"_VS_input;';
+find . -name "*rep*gz" | xargs -n 1 -P $threads -iFILES sh -c 'rep=$(echo FILES | sed "s/\.tagAlign.*//g"); inp=$(echo FILES | sed "s/rep./input\.rep0/"); ss=$(cat FILES.cc | grep FILES | cut -f3 | head -n 1 | cut -d "," -f1); macs2 callpeak -t FILES -c $inp -g $gsize --to-large --nomodel --extsize $ss -p 0.1 -n "$rep"_VS_input;';
 
 #IDR self consistency analysis
 
