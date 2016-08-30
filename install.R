@@ -1,0 +1,8 @@
+install.packages("bitops")
+install.packages("snow")
+install.packages("caTools")
+install.packages("devtools")
+source("https://bioconductor.org/biocLite.R")
+biocLite("Rsamtools")
+require(devtools)
+devtools::install_github('hms-dbmi/spp', build_vignettes = FALSE)
