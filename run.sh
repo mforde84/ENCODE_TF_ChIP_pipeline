@@ -130,35 +130,17 @@ cat encode_temp_dir/comparisons.txt | xargs -n 1 -P 16 -iLINES bash -c '
  Rscript batch-consistency-plot.r 1 "$pr1"_VS_"$base_pr2" "$pr1"_VS_"$base_pr2";
 '
 
-# pooled optimal / conservative spp - single core
-find encode_temp_dir/ -name "*rep0*pr1*VS*rep0*pr2*overlap*" -not -name "*narrow*" | xargs -n 1 -P $threads -iFILES bash -c '
- hold=FILES;
- optimal=$(wc -l FILES | cut -d " " -f 1);
- conservative=0;
- base=$(echo FILES | sed "s/.rep0.*//g" | sed "s/^.*\///g");
- for f in encode_temp_dir/$base*regionPeak*overlap*; do
-  if [[ "$f" != "$hold" ]]; then 
-   comp=$(wc -l $f | cut -d " " -f 1); 
-   if [ "$comp" -gt "$optimal" ]; then
-    optimal=$comp;	
-   fi;
-   if [ "$comp" -gt "$conservative" ]; then
-    conservative=$comp;	
-   fi;
-  fi;
- done;
- peakfile=$(find encode_temp_dir/ -name "$base*rep0*regionPeak.gz" -not -name "*pr[1-2]*" -not -name "*VS*");
- zcat "$peakfile" | sort -k 8nr,8nr | head -n $optimal | gzip -c > "$peakfile".spp.optimal.gz;  
- zcat "$peakfile" | sort -k 8nr,8nr | head -n $conservative | gzip -c > "$peakfile".spp.conservative.gz;  
-'
-	
 # pooled optimal / conservative macs2 - single core
-find encode_temp_dir/ -name "*rep0*pr1*VS*rep0*pr2*overlap*" -not -name "*region*" | xargs -n 1 -P $threads -iFILES bash -c '
+find encode_temp_dir/ -name "*rep0*pr1*VS*rep0*pr2*overlap*" | xargs -n 1 -P $threads -iFILES bash -c '
  hold=FILES;
+ type="region"; 
+ if [[ "$hold" =~ .*narrow.* ]]; then 
+  type="narrow"; 
+ fi;
  optimal=$(wc -l FILES | cut -d " " -f 1);
  conservative=0;
  base=$(echo FILES | sed "s/.rep0.*//g" | sed "s/^.*\///g");
- for f in encode_temp_dir/$base*narrowPeak*overlap*; do
+ for f in encode_temp_dir/"$base"*"$type"Peak*overlap*; do
   if [[ "$f" != "$hold" ]]; then 
    comp=$(wc -l $f | cut -d " " -f 1); 
    if [ "$comp" -gt "$optimal" ]; then
@@ -169,9 +151,9 @@ find encode_temp_dir/ -name "*rep0*pr1*VS*rep0*pr2*overlap*" -not -name "*region
    fi;
   fi;
  done;
- peakfile=$(find encode_temp_dir/ -name "$base*rep0*narrowPeak.gz" -not -name "*pr[1-2]*" -not -name "*VS*");
- zcat "$peakfile" | sort -k 8nr,8nr | head -n $optimal | gzip -c > "$peakfile".macs.optimal.gz;  
- zcat "$peakfile" | sort -k 8nr,8nr | head -n $conservative | gzip -c > "$peakfile".macs.conservative.gz;  
+ peakfile=$(find encode_temp_dir/ -name "$base*rep0*$typePeak.gz" -not -name "*pr[1-2]*" -not -name "*VS*");
+ zcat "$peakfile" | sort -k 8nr,8nr | head -n $optimal | gzip -c > "$peakfile".optimal.gz;  
+ zcat "$peakfile" | sort -k 8nr,8nr | head -n $conservative | gzip -c > "$peakfile".conservative.gz;  
 '
 
 cd encode_temp_dir/;
