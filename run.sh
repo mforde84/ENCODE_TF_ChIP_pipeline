@@ -130,7 +130,7 @@ cat encode_temp_dir/comparisons.txt | xargs -n 1 -P 16 -iLINES bash -c '
  Rscript batch-consistency-plot.r 1 "$pr1"_VS_"$base_pr2" "$pr1"_VS_"$base_pr2";
 '
 
-# pooled optimal / conservative macs2 - single core
+# pooled optimal / conservative - single core
 find encode_temp_dir/ -name "*rep0*pr1*VS*rep0*pr2*overlap*" | xargs -n 1 -P $threads -iFILES bash -c '
  hold=FILES;
  type="region"; 
