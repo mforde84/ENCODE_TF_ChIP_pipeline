@@ -37,7 +37,6 @@ find encode_temp_dir/ -name "*_q30.sam" | xargs -n 1 -P $threads -iFILES bash -c
  samtools view -Sbh FILES > FILES.bam;
  samtools sort FILES.bam "$out".sort;
  samtools index "$out"sort.bam "$out"sort.bam.bai;
- perl bam2wiggle.perl -m -D "$out_dir" "$out".sort.bam;
  genomeCoverageBed -split -bg -ibam "$out".sort.bam -g "$csize" > FILES.bedgraph;
  sort -k1,1 -k2,2n FILES.bedGraph > FILES.sort.bedGraph;
  bedGraphToBigWig FILES.sort.bedGraph "$csize" FILES.bigWig;
