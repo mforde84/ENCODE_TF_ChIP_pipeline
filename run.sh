@@ -66,15 +66,12 @@ find encode_temp_dir/ -name "*tagAlign.gz"  -not -name "*input*" | xargs -n 1 -P
 ';
 
 #spp peak calls - multithreaded through R snow package support
-for f in $(find . -name "*tagAlign*gz"  -not -name "*input*"); do
+for f in $(find encode_temp_dir -name "*tagAlign*gz"  -not -name "*input*"); do
  inp="$(echo $f | sed "s/rep./input\.rep0/" | sed "s/\.pr[1-9]\.gz//g")"; 
  base="$out_dir"/"$(echo $f | sed "s/..encode\_temp\_dir\///g" | sed "s/.fastq.sam_q30.sam.tagAlign//" | sed "s/\.gz//g")";
- echo "$base".regionPeak;
- echo "$base".plot.pdf;
  Rscript run_spp.R -c=$f -i=$inp -npeak=30000 -x=-500:85 -odir=./ -p=10 -savr -savp -rf -out="$f".cc -savr="$base".regionPeak -savp="$base".plot.pdf
  cp "$out_dir"/*.regionPeak.gz encode_temp_dir/;
 done;
-find . -name "*regionPeak.gz" | xargs -n 1 -P $threads -iFILES bash -c 'gunzip FILES;';
 
 # macs2 peak calls - macs2 single core
 find encode_temp_dir/ -name "*tagAlign*gz"  -not -name "*input*" | xargs -n 1 -P $threads -iFILES bash -c '
