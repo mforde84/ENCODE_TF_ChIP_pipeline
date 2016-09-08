@@ -17,7 +17,7 @@ mkdir "$out_dir";
 
 #alignments and sam file generation - multithreaded aln, samse is memory heavy
 for f in "$reads_dir"/*.fastq; do
- temp_loc=$(echo $f | sed "s/$reads_dir\///"); 
+ temp_loc=$(echo $f | sed "s~$reads_dir\/~~g"); 
  bwa aln -I -B 0 -t $threads $genome $f | bwa samse $genome - $f > encode_temp_dir/"$temp_loc".sam;
 done;
 
@@ -31,15 +31,15 @@ find encode_temp_dir/ -name "*_q30.sam" | xargs -n 1 -P $threads -iFILES bash -c
  samtools view -Sb FILES | bedtools bamtobed -i stdin | awk '\''BEGIN{FS="\t";OFS="\t"}{$4="N";print$0}'\'' | gzip -c > FILES.tagAlign.gz;
 ';
 
-#generate bams - single core
+#generate bam and wig - single core
 find encode_temp_dir/ -name "*_q30.sam" | xargs -n 1 -P $threads -iFILES bash -c '
  out="$out_dir"/$(echo FILES | sed -e "s/encode_temp_dir.//g" | sed "s/\.sam//g")
  samtools view -Sbh FILES > FILES.bam;
  samtools sort FILES.bam "$out".sort;
  samtools index "$out"sort.bam "$out"sort.bam.bai;
  genomeCoverageBed -split -bg -ibam "$out".sort.bam -g "$csize" > FILES.bedgraph;
- sort -k1,1 -k2,2n FILES.bedGraph > FILES.sort.bedGraph;
- bedGraphToBigWig FILES.sort.bedGraph "$csize" FILES.bigWig;
+ sort -k1,1 -k2,2n FILES.bedgraph > FILES.sort.bedgraph;
+ bedGraphToBigWig FILES.sort.bedgraph "$csize" FILES.bigWig;
  bigWigToWig FILES.bigWig "$out".wig
 ';
 
@@ -67,9 +67,9 @@ find encode_temp_dir/ -name "*tagAlign.gz"  -not -name "*input*" | xargs -n 1 -P
 #spp peak calls - multithreaded through R snow package support
 for f in $(find encode_temp_dir -name "*tagAlign*gz"  -not -name "*input*"); do
  inp="$(echo $f | sed "s/rep./input\.rep0/" | sed "s/\.pr[1-9]\.gz//g")"; 
- base="$out_dir"/"$(echo $f | sed "s/..encode\_temp\_dir\///g" | sed "s/.fastq.sam_q30.sam.tagAlign//" | sed "s/\.gz//g")";
- Rscript run_spp.R -c=$f -i=$inp -npeak=30000 -x=-500:85 -odir=./ -p=10 -savr -savp -rf -out="$f".cc -savr="$base".regionPeak -savp="$base".plot.pdf
- cp "$out_dir"/*.regionPeak.gz encode_temp_dir/;
+ base="$(echo $f | sed "s/^.*code_temp_dir\///g" | sed "s/.fastq.sam_q30.sam.tagAlign//" | sed "s/\.gz//g")";
+ Rscript run_spp.R -c="$f" -i="$inp" -npeak=30000 -x=-500:85 -odir=./ -p=10 -savr -savp -rf -out="$f".cc -savr=encode_temp_dir/"$base".regionPeak -savp=encode_temp_dir/"$base".plot.pdf -tmpdir=encode_temp_dir
+ cp encode_temp_dir/*.regionPeak.gz "$out_dir";
 done;
 
 # macs2 peak calls - macs2 single core
@@ -126,19 +126,23 @@ cat encode_temp_dir/comparisons.txt | xargs -n 1 -P 16 -iLINES bash -c '
  Rscript batch-consistency-plot.r 1 "$pr1"_VS_"$base_pr2" "$pr1"_VS_"$base_pr2";
 '
 
+cd encode_temp_dir;
 # pooled optimal / conservative - single core
-find encode_temp_dir/ -name "*rep0*pr1*VS*rep0*pr2*overlap*" | xargs -n 1 -P $threads -iFILES bash -c '
- hold=FILES;
+find . -name "*rep0*pr1*VS*rep0*pr2*overlap*" | xargs -n 1 -P $threads -iFILES bash -c '
+ hold=$(echo FILES | sed "s/^\.\///g");
  type="region"; 
  if [[ "$hold" =~ .*narrow.* ]]; then 
   type="narrow"; 
+  peakfile=$(find . -name "$base*rep0*narrowPeak.gz" -not -name "*pr[1-2]*" -not -name "*VS*" | sed "s/\.\///g");
+ else
+  peakfile=$(find . -name "$base*rep0*regionPeak.gz" -not -name "*pr[1-2]*" -not -name "*VS*" | sed "s/\.\///g");
  fi;
  optimal=$(wc -l FILES | cut -d " " -f 1);
  conservative=0;
- base=$(echo FILES | sed "s/.rep0.*//g" | sed "s/^.*\///g");
- for f in encode_temp_dir/"$base"*"$type"Peak*overlap*; do
+ base=$(echo $FILES | sed "s/.rep0.*//g" | sed "s/^.*\///g");
+ for f in "$base"*"$type"Peak*overlap*; do
   if [[ "$f" != "$hold" ]]; then 
-   comp=$(wc -l $f | cut -d " " -f 1); 
+   comp=$(wc -l $f | cut -d " " -f 1);
    if [ "$comp" -gt "$optimal" ]; then
     optimal=$comp;	
    fi;
@@ -147,12 +151,12 @@ find encode_temp_dir/ -name "*rep0*pr1*VS*rep0*pr2*overlap*" | xargs -n 1 -P $th
    fi;
   fi;
  done;
- peakfile=$(find encode_temp_dir/ -name "$base*rep0*$typePeak.gz" -not -name "*pr[1-2]*" -not -name "*VS*");
- zcat "$peakfile" | sort -k 8nr,8nr | head -n $optimal | gzip -c > "$peakfile".optimal.gz;  
- zcat "$peakfile" | sort -k 8nr,8nr | head -n $conservative | gzip -c > "$peakfile".conservative.gz;  
+ touch "$peakfile".optimal.gz;
+ touch "$peakfile".conservative.gz;
+ zcat "$peakfile" | sort -k 8nr,8nr | head -n "$optimal" | gzip -c > "$peakfile".optimal.gz;  
+ zcat "$peakfile" | sort -k 8nr,8nr | head -n "$conservative" | gzip -c > "$peakfile".conservative.gz;  
 '
 
-cd encode_temp_dir/;
 cp *conservative* "$out_dir";
 cp *optimal* "$out_dir";
 cp *plot* "$out_dir";
