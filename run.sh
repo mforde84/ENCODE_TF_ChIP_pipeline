@@ -36,7 +36,6 @@ find encode_temp_dir/ -name "*_q30.sam" | xargs -n 1 -P "$threads" -iFILES bash 
  out="$out_dir"/$(echo FILES | sed -e "s/encode_temp_dir.//g" | sed "s/\.sam//g")
  samtools view -Sbh FILES > FILES.bam;
  samtools sort FILES.bam "$out".sort;
- samtools index "$out"sort.bam "$out"sort.bam.bai;
  genomeCoverageBed -split -bg -ibam "$out".sort.bam -g "$csize" > FILES.bedgraph;
  sort -k1,1 -k2,2n FILES.bedgraph > FILES.sort.bedgraph;
  bedGraphToBigWig FILES.sort.bedgraph "$csize" FILES.bigWig;
